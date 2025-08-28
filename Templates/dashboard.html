@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🖥️ Harjot's Enterprise Server Dashboard</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<header>
+<div class="container">
+<h1>🖥️ Harjot's Enterprise Server Dashboard</h1>
+<div class="timestamp" id="timestamp">{{ data.timestamp }}</div>
+<div class="refresh-control">
+<span class="live-indicator"></span>
+<label for="refresh-rate">Update every:</label>
+<select id="refresh-rate" onchange="setRefreshRate()">
+<option value="3000">3 seconds</option>
+<option value="5000" selected>5 seconds</option>
+<option value="10000">10 seconds</option>
+</select>
+<button class="dark-mode-toggle" onclick="toggleDarkMode()">🌓 Toggle Dark Mode</button>
+</div>
+</div>
+</header>
+<div class="container">
+<div class="loading" id="loading">
+<p>🔄 Updating dashboard data...</p>
+</div>
+<div class="error-message" id="error-message"></div>
+
+<div class="grid">
+<!-- CPU GRID YAYYY -->
+<div class="card" tabindex="0">
+<h2>🧠 CPU Performance</h2>
+<div class="metric-grid">
+<div class="metric">
+<div class="metric-value" id="cpu-percent">{{ data.cpu.percent }}%</div>
+<div class="metric-label">Usage</div>
+</div>
+<div class="metric">
+<div class="metric-value">{{ data.cpu.count }}</div>
+<div class="metric-label">Cores</div>
+</div>
+<div class="metric">
+<div class="metric-value">{{ "%.1f"|format(data.cpu.frequency) }}</div>
+<div class="metric-label">MHz</div>
+</div>
+</div>
+<div class="progress-bar">
+<div class="progress-fill" id="cpu-progress" style="width: {{ data.cpu.percent }}%"></div>
+</div>
+<p><strong>Load Average:</strong> {{ "%.2f, %.2f, %.2f"|format(data.cpu.load_avg[0], data.cpu.load_avg[1], data.cpu.load_avg[2]) }}</p>
+</div>
+
+<!-- MEMEORY BLOCKKK -->
+<div class="card" tabindex="0">
+<h2>💾 Memory Usage</h2>
+<div class="metric-grid">
+<div class="metric">
+<div class="metric-value" id="memory-percent">{{ data.memory.percent }}%</div>
+<div class="metric-label">Used</div>
+</div>
+<div class="metric">
+<div class="metric-value">{{ data.memory.used_gb }}</div>
+<div class="metric-label">GB Used</div>
+</div>
+<div class="metric">
+<div class="metric-value">{{ data.memory.available_gb }}</div>
+<div class="metric-label">GB Free</div>
+</div>
+</div>
+<div class="progress-bar">
+<div class="progress-fill" id="memory-progress" style="width: {{ data.memory.percent }}%"></div>
+</div>
+<p><strong>Total Memory:</strong> {{ data.memory.total_gb }} GB</p>
+</div>
+
+<!-- DISK BLOCK -->
+<div class="card" tabindex="0">
+<h2>📀 Disk Storage</h2>
+<div class="metric-grid">
+<div class="metric">
+<div class="metric-value" id="disk-percent">{{ data.disk.percent }}%</div>
+<div class="metric-label">Used</div>
+</div>
+<div class="metric">
+<div class="metric-value">{{ data.disk.used_gb }}</div>
+<div class="metric-label">GB Used</div>
+</div>
+<div class="metric">
+<div class="metric-value">{{ data.disk.free_gb }}</div>
+<div class="metric-label">GB Free</div>
+</div>
+</div>
+<div class="progress-bar">
+<div class="progress-fill" id="disk-progress" style="width: {{ data.disk.percent }}%"></div>
+</div>
+<p><strong>Total Space:</strong> {{ data.disk.total_gb }} GB | <strong>I/O:</strong> {{ data.disk.read_mb }} MB read, {{ data.disk.write_mb }} MB written</p>
+</div>
+
+<!-- NETWORK BOXX -->
+<div class="card" tabindex="0">
+<h2>🌐 Network Activity</h2>
+<div class="metric-grid">
+<div class="metric">
+<div class="metric-value" id="network-sent">{{ data.network.bytes_sent_mb }}</div>
+<div class="metric-label">MB Sent</div>
+</div>
+<div class="metric">
+<div class="metric-value" id="network-recv">{{ data.network.bytes_recv_mb }}</div>
+<div class="metric-label">MB Received</div>
+</div>
+<div class="metric">
+<div class="metric-value">{{ data.network.packets_sent }}</div>
+<div class="metric-label">Packets Sent</div>
+</div>
+<div class="metric">
+<div class="metric-value">{{ data.network.packets_recv }}</div>
+<div class="metric-label">Packets Received</div>
+</div>
+</div>
+</div>
+
+<!-- Services running -->
+<div class="card" tabindex="0">
+<h2>🛠️ System Services</h2>
+<div class="services-grid">
+{% for service, info in data.services.items() %}
+<div class="service {{ 'active' if info.status == 'active' else 'inactive' }}" tabindex="0">
+{{ service.upper() }}
+<br>
+<small>{{ info.status }}</small>
+</div>
+{% endfor %}
+</div>
+</div>
+
+<!-- Top proccesses box -->
+<div class="card" tabindex="0">
+<h2>🔥 Top Processes</h2>
+<p><strong>Total Running:</strong> {{ data.processes.total }} processes</p>
+<div class="process-list" id="process-list">
+{% for process in data.processes.top_processes %}
+<div class="process-item">
+<div class="process-name">{{ process.name }}</div>
+<div class="process-stats">
+CPU: {{ "%.1f"|format(process.cpu_percent or 0) }}% | 
+MEM: {{ "%.1f"|format(process.memory_percent or 0) }}%
+</div>
+</div>
+{% endfor %}
+</div>
+</div>
+
+<!-- will add real time logs later maybe -->
+<div class="card" tabindex="0">
+<h2>System Information</h2>
+<div class="system-info">
+<div class="info-item">
+<div class="info-label">System Uptime</div>
+<div class="info-value">{{ data.system.uptime }}</div>
+</div>
+<div class="info-item">
+<div class="info-label">Boot Time</div>
+<div class="info-value">{{ data.system.boot_time }}</div>
+</div>
+<div class="info-item">
+<div class="info-label">Active Users</div>
+<div class="info-value">{{ data.system.users|join(', ') if data.system.users else 'None' }}</div>
+</div>
+<div class="info-item">
+<div class="info-label">Last Updated</div>
+<div class="info-value" id="last-update">{{ data.timestamp }}</div>
+</div>
+</div>
+</div>
+<!-- memeory box -->
+<div class="card" tabindex="0">
+<h2>🔁 Swap Memory</h2>
+<div class="metric-grid">
+<div class="metric">
+<div class="metric-value">{{ data.swap.percent }}%</div>
+<div class="metric-label">Used</div>
+</div>
+<div class="metric">
+<div class="metric-value">{{ data.swap.used_gb }}</div>
+<div class="metric-label">GB Used</div>
+</div>
+<div class="metric">
+<div class="metric-value">{{ data.swap.total_gb }}</div>
+<div class="metric-label">GB Total</div>
+</div>
+</div><div class="progress-bar">
+<div class="progress-fill" style="width: {{ data.swap.percent }}%"></div>
+</div>
+</div>
+</div>
+</div>
+<script src="{{ url_for('static', filename='js/script.js')}}"></script>
+</body>
+</html>
